@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Симулятор Тренера УПЛ</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --accent-color: #198754;
+            --accent-hover: #157347;
+            --shadow: 0 4px 10px rgba(0,0,0,0.1);
+            --win-color: #28a745;
+            --draw-color: #6c757d;
+            --lose-color: #dc3545;
+            --nav-bg: #ffffff;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --card-bg: #1e1e1e;
+            --border-color: #333333;
+            --accent-color: #28a745;
+            --accent-hover: #218838;
+            --shadow: 0 4px 10px rgba(0,0,0,0.5);
+            --nav-bg: #1a1a1a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; transition: background-color 0.3s, color 0.3s; }
+
+        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; overflow-x: hidden; padding-bottom: 70px; }
+
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background-color: var(--card-bg); box-shadow: var(--shadow);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .container { padding: 15px; max-width: 600px; margin: 0 auto; width: 100%; }
+        
+        .screen { display: none; animation: fadeIn 0.4s ease; }
+        .active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2, h3 { margin-bottom: 15px; text-align: center; }
+
+        .club-list { height: 350px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 20px; }
+        .club-item, .option-card {
+            display: flex; align-items: center; padding: 12px;
+            background: var(--card-bg); border-bottom: 1px solid var(--border-color); cursor: pointer;
+        }
+        .club-item.selected, .option-card.selected { background: rgba(25, 135, 84, 0.1); border-left: 5px solid var(--accent-color); }
+        .club-logo { width: 40px; height: 40px; margin-right: 15px; object-fit: contain; }
+
+        .btn {
+            width: 100%; padding: 12px; background: var(--accent-color); color: white;
+            border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px;
+        }
+        .btn:disabled { background: var(--border-color); color: #888; cursor: not-allowed; }
+        .btn-secondary { background: var(--draw-color); }
+        
+        .form-input, .form-select {
+            width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px;
+            border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; background: var(--nav-bg);
+            display: none; justify-content: space-around; padding: 10px 5px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; border-top: 1px solid var(--border-color);
+        }
+        .nav-item {
+            text-align: center; font-size: 0.75rem; color: var(--text-color); cursor: pointer; flex: 1; opacity: 0.6;
+        }
+        .nav-item.active { opacity: 1; color: var(--accent-color); font-weight: bold; }
+        .nav-icon { font-size: 1.5rem; display: block; margin-bottom: 3px; }
+
+        /* Game Tabs */
+        .game-tab { display: none; animation: fadeIn 0.3s ease; }
+        .game-tab.active { display: block; }
+
+        /* Squad Tab */
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .player-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--card-bg); border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border-color); }
+        .player-info { display: flex; align-items: center; gap: 10px; }
+        .rating { background: var(--accent-color); color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
+        .section-title { background: var(--border-color); padding: 5px 10px; border-radius: 5px; margin: 15px 0 10px; font-weight: bold; font-size: 0.9rem; }
+
+        /* Table Tab */
+        .table-responsive { overflow-x: auto; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        th, td { padding: 10px; text-align: center; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
+        th { background: rgba(0,0,0,0.05); font-weight: bold; }
+        td.text-left { text-align: left; font-weight: 500; }
+        .form-icon { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 3px; font-size: 0.7rem; color: white; margin: 0 2px; cursor: pointer; }
+        .form-w { background: var(--win-color); } .form-d { background: var(--draw-color); } .form-l { background: var(--lose-color); }
+
+        /* Matches & Transfers */
+        .card { background: var(--card-bg); padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .match-teams { font-weight: bold; } .match-date { font-size: 0.8rem; color: #888; }
+        .stat-badge { font-size: 0.85rem; background: var(--bg-color); padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border-color); }
+
+        /* Budget Tab */
+        .budget-header { text-align: center; padding: 20px; background: var(--accent-color); color: white; border-radius: 10px; margin-bottom: 20px; }
+        .budget-amount { font-size: 1.8rem; font-weight: bold; margin-top: 10px; }
+        .finance-row { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--border-color); background: var(--card-bg); }
+        .income-text { color: var(--win-color); font-weight: bold; }
+        .expense-text { color: var(--lose-color); font-weight: bold; }
+
+        /* Modals */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h3 id="top-title">Симулятор Тренера</h3>
+    <button onclick="toggleTheme()" style="background:none; border:none; font-size:1.5rem;" id="themeIcon">🌙</button>
+</header>
+
+<div class="container">
+    
+    <!-- Setup Screens -->
+    <div id="screen-1" class="screen active">
+        <h2>Оберіть клуб</h2>
+        <div class="club-list" id="clubList"></div>
+        <button class="btn" id="to-step-2" disabled onclick="showScreen(2)">Далі</button>
+    </div>
+
+    <div id="screen-2" class="screen">
+        <h2>Хто буде тренувати?</h2>
+        <div class="option-card" onclick="selectCoachMode('current')">
+            <div id="current-coach-info"><strong>Діючий тренер</strong><br><small id="current-coach-name"></small></div>
+        </div>
+        <div class="option-card" onclick="selectCoachMode('new')" style="margin-top:10px;">
+            <div><strong>Створити нового тренера</strong><br><small>Ваше ім'я</small></div>
+        </div>
+        <button class="btn btn-secondary" onclick="showScreen(1)">Назад</button>
+    </div>
+
+    <div id="screen-3" class="screen">
+        <h2>Новий тренер</h2>
+        <input type="text" id="firstName" class="form-input" placeholder="Ім'я (обов'язково)">
+        <input type="text" id="lastName" class="form-input" placeholder="Прізвище (необов'язково)">
+        <button class="btn" onclick="finishSetup()">Підтвердити</button>
+    </div>
+
+    <div id="screen-4" class="screen">
+        <div class="card" style="flex-direction:column; text-align:center; padding: 30px 15px;">
+            <h3>Ваш кабінет</h3>
+            <p>Тренер: <span id="final-name" style="font-weight:bold"></span></p>
+            <p>Бюджет: <span id="final-budget" style="color:var(--accent-color); font-weight:bold;"></span></p>
+            <p style="margin: 15px 0; font-size: 0.9rem; font-style: italic;">"Ваша ціль: досягти максимального успіху в УПЛ!"</p>
+            <button class="btn" onclick="startGame()">Розпочати сезон</button>
+        </div>
+    </div>
+
+    <!-- Main Game Dashboard (Screen 5) -->
+    <div id="screen-5" class="screen">
+        
+        <!-- Tab 1: Squad -->
+        <div id="tab-squad" class="game-tab active">
+            <h2>Склад команди</h2>
+            <div class="settings-grid">
+                <div>
+                    <label style="font-size:0.8rem; font-weight:bold;">Тактика</label>
+                    <select class="form-select" id="tactics-select">
+                        <option>4-3-3</option><option>4-4-2</option><option>3-5-2</option><option>4-2-3-1</option><option>5-3-2</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; font-weight:bold;">Пресинг</label>
+                    <select class="form-select" id="pressing-select">
+                        <option>Високий</option><option>Середній</option><option>Низький</option>
+                    </select>
+                </div>
+                <div style="grid-column: span 2;">
+                    <label style="font-size:0.8rem; font-weight:bold;">Капітан</label>
+                    <select class="form-select" id="captain-select"></select>
+                </div>
+            </div>
+            <div class="section-title">Основа (11)</div>
+            <div id="squad-starters"></div>
+            <div class="section-title">Резерв</div>
+            <div id="squad-bench"></div>
+        </div>
+
+        <!-- Tab 2: Table -->
+        <div id="tab-table" class="game-tab">
+            <h2>Таблиця УПЛ</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>#</th><th class="text-left">Клуб</th><th>І</th><th>В</th><th>Н</th><th>П</th><th>О</th><th>Форма</th></tr></thead>
+                    <tbody id="league-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 3: Matches -->
+        <div id="tab-matches" class="game-tab">
+            <select class="form-select" id="match-filter" onchange="renderMatches()"><option value="all">Усі матчі</option></select>
+            <div id="matches-list" style="margin-top:15px; margin-bottom: 20px;"></div>
+            
+            <h2>Найкращі гравці</h2>
+            <select class="form-select" id="stat-filter" onchange="renderTopPlayers()">
+                <option value="goals">Бомбардири (Голи)</option><option value="assists">Асистенти</option>
+            </select>
+            <div id="top-players-list" style="margin-top:15px;"></div>
+        </div>
+
+        <!-- Tab 4: Market -->
+        <div id="tab-market" class="game-tab">
+            <h2>Трансферний ринок</h2>
+            <div id="transfer-list"></div>
+        </div>
+
+        <!-- Tab 5: Budget -->
+        <div id="tab-budget" class="game-tab">
+            <div class="budget-header">
+                <div>Поточний бюджет</div>
+                <div class="budget-amount" id="budget-display">0 €</div>
+            </div>
+            <h3 style="text-align:left;">Фінанси</h3>
+            <div class="finance-row"><span>Доходи за квитки (сезон)</span><span class="income-text">+ 450,000 €</span></div>
+            <div class="finance-row"><span>Спонсори</span><span class="income-text">+ 1,200,000 €</span></div>
+            <div class="finance-row"><span>Зарплати гравцям</span><span class="expense-text">- 850,000 €</span></div>
+            <div class="finance-row"><span>Обслуговування стадіону</span><span class="expense-text">- 150,000 €</span></div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav" id="bottom-nav">
+    <div class="nav-item active" onclick="switchTab('tab-squad', this)"><span class="nav-icon">👕</span>Склад</div>
+    <div class="nav-item" onclick="switchTab('tab-table', this)"><span class="nav-icon">📊</span>Таблиця</div>
+    <div class="nav-item" onclick="switchTab('tab-matches', this)"><span class="nav-icon">⚽</span>Матчі</div>
+    <div class="nav-item" onclick="switchTab('tab-market', this)"><span class="nav-icon">🔄</span>Купівля</div>
+    <div class="nav-item" onclick="switchTab('tab-budget', this)"><span class="nav-icon">💰</span>Бюджет</div>
+</div>
+
+<!-- Modal for match result -->
+<div id="matchModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modal-match-title">Матч</h3>
+        <p id="modal-match-score" style="font-size:1.5rem; font-weight:bold; margin:15px 0;"></p>
+        <button class="btn" onclick="document.getElementById('matchModal').style.display='none'">Закрити</button>
+    </div>
+</div>
+
+<script>
+    const clubsData = [
+        { name: "«Динамо» (Київ)", img: "dynamo.png", coach: "Ігор Костюк", budget: 25000000 },
+        { name: "«Шахтар» (Донецьк)", img: "shakhtar.png", coach: "Арда Туран", budget: 45000000 },
+        { name: "«Полісся» (Житомир)", img: "polissya.png", coach: "Руслан Ротань", budget: 12000000 },
+        { name: "«Кривбас» (Кривий Ріг)", img: "kryvbas.png", coach: "Патрік ван Леувен", budget: 6000000 },
+        { name: "ФК «Олександрія»", img: "oleksandriya.png", coach: "Володимир Шаран", budget: 4000000 },
+        { name: "«Карпати» (Львів)", img: "karpaty.png", coach: "Франсіско Фернандес", budget: 5000000 },
+        { name: "«Зоря» (Луганськ)", img: "zorya.png", coach: "Віктор Скрипник", budget: 4500000 },
+        { name: "«Рух» (Львів)", img: "rukh.png", coach: "Іван Федик", budget: 5500000 },
+        { name: "«Верес» (Рівне)", img: "veres.png", coach: "Олег Шандрук", budget: 1500000 },
+        { name: "«Колос» (Ковалівка)", img: "kolos.png", coach: "Руслан Костишин", budget: 3000000 },
+        { name: "«Оболонь» (Київ)", img: "obolon.png", coach: "Олександр Антоненко", budget: 1000000 },
+        { name: "ЛНЗ (Черкаси)", img: "lnz.png", coach: "Віталій Пономарьов", budget: 3500000 },
+        { name: "«Епіцентр» (К-П)", img: "epicentr.png", coach: "Сергій Нагорняк", budget: 1200000 },
+        { name: "«Металіст 1925»", img: "metalist1925.png", coach: "Младен Бартулович", budget: 3000000 },
+        { name: "«Кудрівка»", img: "kudrivka.png", coach: "Олександр Протченко", budget: 800000 },
+        { name: "СК «Полтава»", img: "poltava.png", coach: "Павло Матвійченко", budget: 900000 }
+    ];
+
+    const fNames = ["Андрій", "Михайло", "Олександр", "Віктор", "Сергій", "Іван", "Денис", "Микола", "Артем", "Максим", "Володимир", "Тарас", "Євген"];
+    const lNames = ["Шевченко", "Мудрик", "Зінченко", "Циганков", "Степаненко", "Забарний", "Трубін", "Матвієнко", "Шапаренко", "Судаков", "Бражко", "Караваєв", "Бущан"];
+
+    let gameState = { club: null, coachName: "", budget: 0, myPlayers: [], marketPlayers: [], leagueTable: [], matches: [], topPlayers: [] };
+
+    function rInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function gName() { return fNames[rInt(0, fNames.length-1)] + " " + lNames[rInt(0, lNames.length-1)]; }
+
+    function init() {
+        const list = document.getElementById('clubList');
+        clubsData.forEach(c => {
+            const item = document.createElement('div');
+            item.className = 'club-item';
+            item.innerHTML = `<img src="img/${c.img}" class="club-logo" alt="logo"> <span>${c.name}</span>`;
+            item.onclick = () => {
+                document.querySelectorAll('.club-item').forEach(el => el.classList.remove('selected'));
+                item.classList.add('selected');
+                gameState.club = c;
+                gameState.budget = c.budget;
+                document.getElementById('to-step-2').disabled = false;
+                document.getElementById('current-coach-name').innerText = c.coach;
+            };
+            list.appendChild(item);
+        });
+    }
+
+    function showScreen(num) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-' + num).classList.add('active');
+    }
+
+    function selectCoachMode(mode) {
+        if (mode === 'current') { gameState.coachName = gameState.club.coach; finishSetup(); }
+        else { showScreen(3); }
+    }
+
+    function finishSetup() {
+        const fN = document.getElementById('firstName').value;
+        const lN = document.getElementById('lastName').value;
+        if (gameState.coachName === "") {
+            if (!fN) { alert("Введіть ім'я!"); return; }
+            gameState.coachName = fN + " " + lN;
+        }
+        document.getElementById('final-name').innerText = gameState.coachName;
+        document.getElementById('final-budget').innerText = gameState.budget.toLocaleString() + " €";
+        showScreen(4);
+    }
+
+    function generateGameData() {
+        // Generate My Players
+        for(let i=0; i<18; i++) {
+            gameState.myPlayers.push({ id: i, name: gName(), rating: rInt(60, 85), isStarter: i < 11 });
+        }
+        
+        // Generate Market
+        for(let i=0; i<20; i++) {
+            let c = clubsData[rInt(0, clubsData.length-1)];
+            if(c.name === gameState.club.name) continue;
+            gameState.marketPlayers.push({ id: 100+i, name: gName(), rating: rInt(65, 88), team: c.name, price: rInt(500, 5000)*1000 });
+        }
+
+        // Generate Table
+        clubsData.forEach(c => {
+            let pts = rInt(10, 45);
+            let w = Math.floor(pts/3); let d = pts%3; let l = 15 - w - d;
+            if(l<0) { w=5; d=0; l=10; pts=15;}
+            let form = [];
+            for(let k=0; k<5; k++) form.push(['W','D','L'][rInt(0,2)]);
+            gameState.leagueTable.push({ name: c.name, p: 15, w: w, d: d, l: l, pts: pts, form: form });
+        });
+        gameState.leagueTable.sort((a,b) => b.pts - a.pts);
+
+        // Generate Matches
+        for(let i=0; i<10; i++) {
+            let t1 = clubsData[rInt(0,7)].name;
+            let t2 = clubsData[rInt(8,15)].name;
+            gameState.matches.push({ id: i, t1: t1, t2: t2, date: "Через " + rInt(1,7) + " днів" });
+        }
+
+        // Generate Top Players
+        for(let i=0; i<15; i++) {
+            gameState.topPlayers.push({ name: gName(), team: clubsData[rInt(0,15)].name, goals: rInt(2,12), assists: rInt(1,8) });
+        }
+        gameState.topPlayers.sort((a,b) => b.goals - a.goals);
+    }
+
+    function startGame() {
+        generateGameData();
+        updateUI();
+        showScreen(5);
+        document.getElementById('bottom-nav').style.display = 'flex';
+        document.getElementById('top-title').innerText = gameState.club.name;
+    }
+
+    function switchTab(tabId, el) {
+        document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    function updateUI() {
+        renderSquad();
+        renderTable();
+        
+        let matchFilt = document.getElementById('match-filter');
+        matchFilt.innerHTML = '<option value="all">Усі матчі</option>';
+        clubsData.forEach(c => matchFilt.innerHTML += `<option value="${c.name}">${c.name}</option>`);
+        renderMatches();
+        renderTopPlayers();
+        renderMarket();
+        
+        document.getElementById('budget-d
