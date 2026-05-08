@@ -3,375 +3,523 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Симулятор Тренера УПЛ</title>
+    <title>Football Manager Mobile</title>
     <style>
         :root {
-            --bg-color: #f8f9fa;
-            --text-color: #212529;
-            --card-bg: #ffffff;
-            --border-color: #dee2e6;
-            --accent-color: #198754;
-            --accent-hover: #157347;
-            --shadow: 0 4px 10px rgba(0,0,0,0.1);
-            --win-color: #28a745;
-            --draw-color: #6c757d;
-            --lose-color: #dc3545;
-            --nav-bg: #ffffff;
+            --bg-dark: #121212;
+            --bg-panel: #1e1e1e;
+            --primary: #00E676; /* Зелений футбольний акцент */
+            --text-light: #ffffff;
+            --text-muted: #aaaaaa;
+            --nav-height: 60px;
         }
 
-        [data-theme="dark"] {
-            --bg-color: #121212;
-            --text-color: #e0e0e0;
-            --card-bg: #1e1e1e;
-            --border-color: #333333;
-            --accent-color: #28a745;
-            --accent-hover: #218838;
-            --shadow: 0 4px 10px rgba(0,0,0,0.5);
-            --nav-bg: #1a1a1a;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
 
-        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; overflow-x: hidden; padding-bottom: 70px; }
-
+        /* Стилізація шапки */
         header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 15px 20px; background-color: var(--card-bg); box-shadow: var(--shadow);
-            position: sticky; top: 0; z-index: 100;
+            background-color: var(--bg-panel);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            z-index: 10;
         }
 
-        .container { padding: 15px; max-width: 600px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; }
-        
-        .screen { display: none; animation: fadeIn 0.4s ease; width: 100%; }
-        .active { display: block; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        h2, h3 { margin-bottom: 15px; text-align: center; }
-
-        /* Фікс згортання в лінію: додано min-height */
-        .club-list { 
-            min-height: 350px;
-            max-height: 55vh; 
-            overflow-y: auto; 
-            -webkit-overflow-scrolling: touch; 
-            border: 1px solid var(--border-color); 
-            border-radius: 10px; 
-            margin-bottom: 20px; 
-            background: var(--card-bg);
-        }
-        
-        .club-item, .option-card {
-            display: flex; align-items: center; padding: 12px;
-            background: var(--card-bg); border-bottom: 1px solid var(--border-color); cursor: pointer;
-        }
-        .club-item.selected, .option-card.selected { background: rgba(25, 135, 84, 0.1); border-left: 5px solid var(--accent-color); }
-        .club-logo { width: 40px; height: 40px; margin-right: 15px; object-fit: contain; }
-
-        .btn {
-            width: 100%; padding: 15px; background: var(--accent-color); color: white;
-            border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px;
-        }
-        .btn:disabled { background: var(--border-color); color: #888; cursor: not-allowed; }
-        .btn-secondary { background: var(--draw-color); }
-        
-        .form-input, .form-select {
-            width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px;
-            border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color);
-            font-size: 1rem;
+        .club-info h1 {
+            font-size: 18px;
+            font-weight: 700;
         }
 
-        /* Bottom Navigation */
-        .bottom-nav {
-            position: fixed; bottom: 0; left: 0; right: 0; background: var(--nav-bg);
-            display: none; justify-content: space-around; padding: 10px 5px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; border-top: 1px solid var(--border-color);
+        .club-info p {
+            font-size: 12px;
+            color: var(--primary);
         }
+
+        .finances {
+            font-size: 16px;
+            font-weight: 600;
+            background: rgba(0, 230, 118, 0.1);
+            padding: 5px 10px;
+            border-radius: 8px;
+            color: var(--primary);
+        }
+
+        /* Основний контент */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            padding-bottom: var(--nav-height); /* Місце для нижнього меню */
+        }
+
+        .screen {
+            display: none;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Екран Складу (Поле) */
+        .pitch {
+            background: linear-gradient(180deg, #1a5c2b 0%, #227c3a 100%);
+            border-radius: 12px;
+            height: 60vh;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+
+        .pitch::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%);
+        }
+
+        .pitch::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 80px;
+            height: 80px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .line {
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            width: 100%;
+            z-index: 2;
+        }
+
+        .player {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .player-dot {
+            width: 30px;
+            height: 30px;
+            background-color: var(--text-light);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #000;
+            font-weight: bold;
+            font-size: 12px;
+            border: 3px solid var(--primary);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .player-name {
+            margin-top: 4px;
+            font-size: 11px;
+            background: rgba(0,0,0,0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* Екран Таблиці */
+        .league-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--bg-panel);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .league-table th, .league-table td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            font-size: 14px;
+        }
+
+        .league-table th {
+            background-color: #2a2a2a;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .league-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .team-row.my-team td {
+            color: var(--primary);
+            font-weight: bold;
+            background-color: rgba(0, 230, 118, 0.05);
+        }
+
+        .text-center { text-align: center; }
+
+        /* Екран Матчу */
+        .match-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 60vh;
+            background-color: var(--bg-panel);
+            border-radius: 12px;
+        }
+
+        .scoreboard {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 40px;
+            width: 100%;
+        }
+
+        .team-shield {
+            width: 60px;
+            height: 60px;
+            background-color: #333;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .score-number {
+            font-size: 48px;
+            font-weight: 800;
+        }
+
+        .btn-play {
+            background-color: var(--primary);
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(0, 230, 118, 0.4);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .btn-play:active {
+            transform: scale(0.95);
+        }
+
+        .match-logs {
+            margin-top: 20px;
+            width: 80%;
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-muted);
+            min-height: 40px;
+        }
+
+        /* Нижня навігація */
+        nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: var(--nav-height);
+            background-color: var(--bg-panel);
+            display: flex;
+            border-top: 1px solid #333;
+            z-index: 100;
+        }
+
         .nav-item {
-            text-align: center; font-size: 0.75rem; color: var(--text-color); cursor: pointer; flex: 1; opacity: 0.6; padding: 5px 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color 0.2s;
         }
-        .nav-item.active { opacity: 1; color: var(--accent-color); font-weight: bold; }
-        .nav-icon { font-size: 1.4rem; display: block; margin-bottom: 3px; }
 
-        /* Game Tabs */
-        .game-tab { display: none; animation: fadeIn 0.3s ease; }
-        .game-tab.active { display: block; }
+        .nav-item.active {
+            color: var(--primary);
+        }
 
-        /* Squad Tab */
-        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .player-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--card-bg); border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border-color); }
-        .player-info { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
-        .rating { background: var(--accent-color); color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
-        .section-title { background: var(--border-color); padding: 5px 10px; border-radius: 5px; margin: 15px 0 10px; font-weight: bold; font-size: 0.9rem; }
-
-        /* Table Tab */
-        .table-responsive { overflow-x: auto; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; min-width: 480px; }
-        th, td { padding: 10px; text-align: center; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
-        th { background: rgba(0,0,0,0.05); font-weight: bold; }
-        td.text-left { text-align: left; font-weight: 500; }
-        .form-icon { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 3px; font-size: 0.7rem; color: white; margin: 0 2px; cursor: pointer; }
-        .form-w { background: var(--win-color); } .form-d { background: var(--draw-color); } .form-l { background: var(--lose-color); }
-
-        /* Matches & Transfers */
-        .card { background: var(--card-bg); padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        .match-teams { font-weight: bold; font-size: 0.95rem; } .match-date { font-size: 0.8rem; color: #888; margin-top: 5px; }
-        .stat-badge { font-size: 0.85rem; background: var(--bg-color); padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border-color); }
-
-        /* Budget Tab */
-        .budget-header { text-align: center; padding: 20px; background: var(--accent-color); color: white; border-radius: 10px; margin-bottom: 20px; }
-        .budget-amount { font-size: 1.8rem; font-weight: bold; margin-top: 10px; }
-        .finance-row { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--border-color); background: var(--card-bg); font-size: 0.9rem; }
-        .income-text { color: var(--win-color); font-weight: bold; }
-        .expense-text { color: var(--lose-color); font-weight: bold; }
-
-        /* Modals */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; }
-        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; }
+        .nav-icon {
+            font-size: 20px;
+            margin-bottom: 3px;
+        }
     </style>
 </head>
 <body>
 
-<header>
-    <h3 id="top-title">Симулятор Тренера</h3>
-    <button onclick="toggleTheme()" style="background:none; border:none; font-size:1.5rem;" id="themeIcon">🌙</button>
-</header>
-
-<div class="container">
-    
-    <div id="screen-1" class="screen active">
-        <h2>Оберіть клуб</h2>
-        <div class="club-list" id="clubList"></div>
-        <button class="btn" id="to-step-2" disabled onclick="showScreen(2)">Далі</button>
-    </div>
-
-    <div id="screen-2" class="screen">
-        <h2>Хто буде тренувати?</h2>
-        <div class="option-card" onclick="selectCoachMode('current')">
-            <div id="current-coach-info"><strong>Діючий тренер</strong><br><small id="current-coach-name"></small></div>
+    <header>
+        <div class="club-info">
+            <h1>Шахтар</h1>
+            <p>Рейтинг: 85</p>
         </div>
-        <div class="option-card" onclick="selectCoachMode('new')" style="margin-top:10px;">
-            <div><strong>Створити нового тренера</strong><br><small>Ваше ім'я</small></div>
-        </div>
-        <button class="btn btn-secondary" onclick="showScreen(1)">Назад</button>
-    </div>
+        <div class="finances">$ 45.5M</div>
+    </header>
 
-    <div id="screen-3" class="screen">
-        <h2>Новий тренер</h2>
-        <input type="text" id="firstName" class="form-input" placeholder="Ім'я (обов'язково)">
-        <input type="text" id="lastName" class="form-input" placeholder="Прізвище (необов'язково)">
-        <button class="btn" onclick="finishSetup()">Підтвердити</button>
-    </div>
-
-    <div id="screen-4" class="screen">
-        <div class="card" style="flex-direction:column; text-align:center; padding: 30px 15px;">
-            <h3>Ваш кабінет</h3>
-            <p>Тренер: <span id="final-name" style="font-weight:bold"></span></p>
-            <p>Бюджет: <span id="final-budget" style="color:var(--accent-color); font-weight:bold;"></span></p>
-            <p style="margin: 15px 0; font-size: 0.9rem; font-style: italic;">"Ваша ціль: досягти максимального успіху в УПЛ!"</p>
-            <button class="btn" onclick="startGame()">Розпочати сезон</button>
-        </div>
-    </div>
-
-    <div id="screen-5" class="screen">
-        
-        <div id="tab-squad" class="game-tab active">
-            <h2>Склад команди</h2>
-            <div class="settings-grid">
-                <div>
-                    <label style="font-size:0.8rem; font-weight:bold;">Тактика</label>
-                    <select class="form-select" id="tactics-select">
-                        <option>4-3-3</option><option>4-4-2</option><option>3-5-2</option><option>4-2-3-1</option><option>5-3-2</option>
-                    </select>
+    <main>
+        <div id="squad-screen" class="screen active">
+            <h2 style="margin-bottom: 15px; font-size: 18px;">Формація 4-3-3</h2>
+            <div class="pitch">
+                <div class="line fw">
+                    <div class="player"><div class="player-dot">9</div><div class="player-name">Сікан</div></div>
+                    <div class="player"><div class="player-dot">11</div><div class="player-name">Зубков</div></div>
+                    <div class="player"><div class="player-dot">7</div><div class="player-name">Егіналду</div></div>
                 </div>
-                <div>
-                    <label style="font-size:0.8rem; font-weight:bold;">Пресинг</label>
-                    <select class="form-select" id="pressing-select">
-                        <option>Високий</option><option>Середній</option><option>Низький</option>
-                    </select>
+                <div class="line mid">
+                    <div class="player"><div class="player-dot">10</div><div class="player-name">Судаков</div></div>
+                    <div class="player"><div class="player-dot">8</div><div class="player-name">Шапаренко</div></div>
+                    <div class="player"><div class="player-dot">21</div><div class="player-name">Бондаренко</div></div>
                 </div>
-                <div style="grid-column: span 2;">
-                    <label style="font-size:0.8rem; font-weight:bold;">Капітан</label>
-                    <select class="form-select" id="captain-select"></select>
+                <div class="line def">
+                    <div class="player"><div class="player-dot">3</div><div class="player-name">Азаров</div></div>
+                    <div class="player"><div class="player-dot">22</div><div class="player-name">Матвієнко</div></div>
+                    <div class="player"><div class="player-dot">5</div><div class="player-name">Бондар</div></div>
+                    <div class="player"><div class="player-dot">2</div><div class="player-name">Конопля</div></div>
+                </div>
+                <div class="line gk">
+                    <div class="player"><div class="player-dot">1</div><div class="player-name">Різник</div></div>
                 </div>
             </div>
-            <div class="section-title">Основа (11)</div>
-            <div id="squad-starters"></div>
-            <div class="section-title">Резерв</div>
-            <div id="squad-bench"></div>
         </div>
 
-        <div id="tab-table" class="game-tab">
-            <h2>Таблиця УПЛ</h2>
-            <div class="table-responsive">
-                <table>
-                    <thead><tr><th>#</th><th class="text-left">Клуб</th><th>І</th><th>В</th><th>Н</th><th>П</th><th>О</th><th>Форма</th></tr></thead>
-                    <tbody id="league-table-body"></tbody>
-                </table>
+        <div id="league-screen" class="screen">
+            <h2 style="margin-bottom: 15px; font-size: 18px;">Турнірна таблиця</h2>
+            <table class="league-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Клуб</th>
+                        <th class="text-center">І</th>
+                        <th class="text-center">О</th>
+                    </tr>
+                </thead>
+                <tbody id="league-body">
+                    </tbody>
+            </table>
+        </div>
+
+        <div id="match-screen" class="screen">
+            <h2 style="margin-bottom: 15px; font-size: 18px; text-align: center;">Наступний тур</h2>
+            <div class="match-container">
+                <div class="scoreboard">
+                    <div class="team-shield" style="background-color: #f37021;">ШХ</div>
+                    <div class="score-number" id="home-score">0</div>
+                    <div style="font-weight: bold; color: #555;">-</div>
+                    <div class="score-number" id="away-score">0</div>
+                    <div class="team-shield" style="background-color: #005A9C;" id="away-shield">ДН</div>
+                </div>
+                <div style="margin-bottom: 10px; font-weight: 600;" id="opponent-name">Шахтар vs Динамо</div>
+                <button class="btn-play" id="play-btn" onclick="playMatch()">Симулювати</button>
+                <div class="match-logs" id="match-logs">Готові до початку матчу...</div>
             </div>
         </div>
+    </main>
 
-        <div id="tab-matches" class="game-tab">
-            <select class="form-select" id="match-filter" onchange="renderMatches()"><option value="all">Усі матчі</option></select>
-            <div id="matches-list" style="margin-top:15px; margin-bottom: 20px;"></div>
+    <nav>
+        <div class="nav-item active" onclick="switchTab('squad', this)">
+            <div class="nav-icon">👕</div>
+            <span>Склад</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('league', this)">
+            <div class="nav-icon">🏆</div>
+            <span>Ліга</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('match', this)">
+            <div class="nav-icon">⚽</div>
+            <span>Матч</span>
+        </div>
+    </nav>
+
+    <script>
+        // Дані ліги (відсортовані за очками)
+        // Виключено команди, які не в цій лізі
+        let teams = [
+            { id: 'shakhtar', name: 'Шахтар', points: 15, games: 5, color: '#f37021', short: 'ШХ' },
+            { id: 'dynamo', name: 'Динамо', points: 13, games: 5, color: '#005A9C', short: 'ДН' },
+            { id: 'epicentr', name: 'Епіцентр', points: 10, games: 5, color: '#1B5E20', short: 'ЕП' },
+            { id: 'polissya', name: 'Полісся', points: 9, games: 5, color: '#FFD700', short: 'ПЛ' },
+            { id: 'kryvbas', name: 'Кривбас', points: 7, games: 5, color: '#D32F2F', short: 'КР' },
+            { id: 'rukh', name: 'Рух', points: 6, games: 5, color: '#FFC107', short: 'РХ' }
+        ];
+
+        let currentOpponentIndex = 1;
+
+        // Перемикання вкладок нижнього меню
+        function switchTab(tabId, element) {
+            // Зняти active з усіх екранів і кнопок
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             
-            <h2>Найкращі гравці</h2>
-            <select class="form-select" id="stat-filter" onchange="renderTopPlayers()">
-                <option value="goals">Бомбардири (Голи)</option><option value="assists">Асистенти</option>
-            </select>
-            <div id="top-players-list" style="margin-top:15px;"></div>
-        </div>
+            // Встановити active на обраний
+            document.getElementById(tabId + '-screen').classList.add('active');
+            element.classList.add('active');
 
-        <div id="tab-market" class="game-tab">
-            <h2>Трансферний ринок</h2>
-            <div id="transfer-list"></div>
-        </div>
+            // Якщо відкрили лігу - оновити таблицю
+            if(tabId === 'league') renderTable();
+            // Якщо відкрили матч - підготувати суперника
+            if(tabId === 'match') prepareNextMatch();
+        }
 
-        <div id="tab-budget" class="game-tab">
-            <div class="budget-header">
-                <div>Поточний бюджет</div>
-                <div class="budget-amount" id="budget-display">0 €</div>
-            </div>
-            <h3 style="text-align:left;">Фінанси</h3>
-            <div class="finance-row"><span>Доходи за квитки (сезон)</span><span class="income-text">+ 450,000 €</span></div>
-            <div class="finance-row"><span>Спонсори</span><span class="income-text">+ 1,200,000 €</span></div>
-            <div class="finance-row"><span>Зарплати гравцям</span><span class="expense-text">- 850,000 €</span></div>
-            <div class="finance-row"><span>Обслуговування стадіону</span><span class="expense-text">- 150,000 €</span></div>
-        </div>
+        // Відмальовка таблиці
+        function renderTable() {
+            // Сортування по очках
+            teams.sort((a, b) => b.points - a.points);
+            
+            const tbody = document.getElementById('league-body');
+            tbody.innerHTML = '';
+            
+            teams.forEach((team, index) => {
+                const isMyTeam = team.id === 'shakhtar';
+                const row = `
+                    <tr class="team-row ${isMyTeam ? 'my-team' : ''}">
+                        <td>${index + 1}</td>
+                        <td>${team.name}</td>
+                        <td class="text-center">${team.games}</td>
+                        <td class="text-center"><b>${team.points}</b></td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
 
-    </div>
-</div>
+        // Підготовка екрану матчу
+        function prepareNextMatch() {
+            // Шукаємо наступного суперника (всі крім Шахтаря)
+            const opponents = teams.filter(t => t.id !== 'shakhtar');
+            const opponent = opponents[currentOpponentIndex % opponents.length];
+            
+            document.getElementById('opponent-name').innerText = `Шахтар vs ${opponent.name}`;
+            document.getElementById('away-shield').innerText = opponent.short;
+            document.getElementById('away-shield').style.backgroundColor = opponent.color;
+            
+            document.getElementById('home-score').innerText = '0';
+            document.getElementById('away-score').innerText = '0';
+            document.getElementById('match-logs').innerText = 'Матч готовий до початку...';
+            document.getElementById('play-btn').disabled = false;
+            document.getElementById('play-btn').innerText = 'СИМУЛЮВАТИ';
+            document.getElementById('play-btn').style.opacity = '1';
+        }
 
-<div class="bottom-nav" id="bottom-nav">
-    <div class="nav-item active" onclick="switchTab('tab-squad', this)"><span class="nav-icon">👕</span>Склад</div>
-    <div class="nav-item" onclick="switchTab('tab-table', this)"><span class="nav-icon">📊</span>Таблиця</div>
-    <div class="nav-item" onclick="switchTab('tab-matches', this)"><span class="nav-icon">⚽</span>Матчі</div>
-    <div class="nav-item" onclick="switchTab('tab-market', this)"><span class="nav-icon">🔄</span>Купівля</div>
-    <div class="nav-item" onclick="switchTab('tab-budget', this)"><span class="nav-icon">💰</span>Бюджет</div>
-</div>
+        // Симуляція матчу
+        function playMatch() {
+            const btn = document.getElementById('play-btn');
+            btn.disabled = true;
+            btn.innerText = 'ЙДЕ МАТЧ...';
+            btn.style.opacity = '0.7';
 
-<div id="matchModal" class="modal">
-    <div class="modal-content">
-        <h3 id="modal-match-title">Матч</h3>
-        <p id="modal-match-score" style="font-size:1.5rem; font-weight:bold; margin:15px 0;"></p>
-        <button class="btn" onclick="document.getElementById('matchModal').style.display='none'">Закрити</button>
-    </div>
-</div>
+            let homeGoals = 0;
+            let awayGoals = 0;
+            
+            // Проста анімація зміни рахунку
+            let time = 0;
+            const interval = setInterval(() => {
+                time += 15; // хвилини матчу
+                
+                // Рандомний шанс голу (у Шахтаря шансів більше)
+                if (Math.random() > 0.75) homeGoals++;
+                if (Math.random() > 0.85) awayGoals++;
 
-<script>
-    const clubsData = [
-        { name: "«Динамо» (Київ)", img: "dynamo.png", coach: "Ігор Костюк", budget: 25000000 },
-        { name: "«Шахтар» (Донецьк)", img: "shakhtar.png", coach: "Арда Туран", budget: 45000000 },
-        { name: "«Полісся» (Житомир)", img: "polissya.png", coach: "Руслан Ротань", budget: 12000000 },
-        { name: "«Кривбас» (Кривий Ріг)", img: "kryvbas.png", coach: "Патрік ван Леувен", budget: 6000000 },
-        { name: "ФК «Олександрія»", img: "oleksandriya.png", coach: "Володимир Шаран", budget: 4000000 },
-        { name: "«Карпати» (Львів)", img: "karpaty.png", coach: "Франсіско Фернандес", budget: 5000000 },
-        { name: "«Зоря» (Луганськ)", img: "zorya.png", coach: "Віктор Скрипник", budget: 4500000 },
-        { name: "«Рух» (Львів)", img: "rukh.png", coach: "Іван Федик", budget: 5500000 },
-        { name: "«Верес» (Рівне)", img: "veres.png", coach: "Олег Шандрук", budget: 1500000 },
-        { name: "«Колос» (Ковалівка)", img: "kolos.png", coach: "Руслан Костишин", budget: 3000000 },
-        { name: "«Оболонь» (Київ)", img: "obolon.png", coach: "Олександр Антоненко", budget: 1000000 },
-        { name: "ЛНЗ (Черкаси)", img: "lnz.png", coach: "Віталій Пономарьов", budget: 3500000 },
-        { name: "«Епіцентр» (К-П)", img: "epicentr.png", coach: "Сергій Нагорняк", budget: 1200000 },
-        { name: "«Металіст 1925»", img: "metalist1925.png", coach: "Младен Бартулович", budget: 3000000 },
-        { name: "«Кудрівка»", img: "kudrivka.png", coach: "Олександр Протченко", budget: 800000 },
-        { name: "СК «Полтава»", img: "poltava.png", coach: "Павло Матвійченко", budget: 900000 }
-    ];
+                document.getElementById('home-score').innerText = homeGoals;
+                document.getElementById('away-score').innerText = awayGoals;
+                document.getElementById('match-logs').innerText = `Йде ${time}-а хвилина матчу...`;
 
-    const fNames = ["Андрій", "Михайло", "Олександр", "Віктор", "Сергій", "Іван", "Денис", "Микола", "Артем", "Максим", "Володимир", "Тарас", "Євген"];
-    const lNames = ["Шевченко", "Мудрик", "Зінченко", "Циганков", "Степаненко", "Забарний", "Трубін", "Матвієнко", "Шапаренко", "Судаков", "Бражко", "Караваєв", "Бущан"];
+                if (time >= 90) {
+                    clearInterval(interval);
+                    finishMatch(homeGoals, awayGoals);
+                }
+            }, 300);
+        }
 
-    let gameState = { club: null, coachName: "", budget: 0, myPlayers: [], marketPlayers: [], leagueTable: [], matches: [], topPlayers: [] };
+        // Завершення матчу та оновлення статистики
+        function finishMatch(homeGoals, awayGoals) {
+            const btn = document.getElementById('play-btn');
+            document.getElementById('match-logs').innerText = `Матч завершено! Рахунок ${homeGoals}:${awayGoals}`;
+            btn.innerText = 'НАСТУПНИЙ МАТЧ';
+            btn.disabled = false;
 
-    function rInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-    function gName() { return fNames[rInt(0, fNames.length-1)] + " " + lNames[rInt(0, lNames.length-1)]; }
+            const opponents = teams.filter(t => t.id !== 'shakhtar');
+            const currentOpponent = opponents[currentOpponentIndex % opponents.length];
 
-    function init() {
-        const list = document.getElementById('clubList');
-        if (!list) return;
-        
-        list.innerHTML = ''; // Очищаємо список перед генерацією
-        
-        clubsData.forEach(c => {
-            const item = document.createElement('div');
-            item.className = 'club-item';
-            item.innerHTML = `<img src="img/${c.img}" class="club-logo" alt="logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'40\\' height=\\'40\\'><circle cx=\\'20\\' cy=\\'20\\' r=\\'20\\' fill=\\'%23ccc\\'/></svg>'"> <span>${c.name}</span>`;
-            item.onclick = () => {
-                document.querySelectorAll('.club-item').forEach(el => el.classList.remove('selected'));
-                item.classList.add('selected');
-                gameState.club = c;
-                gameState.budget = c.budget;
-                document.getElementById('to-step-2').disabled = false;
-                document.getElementById('current-coach-name').innerText = c.coach;
+            // Оновлюємо Шахтар
+            let myTeam = teams.find(t => t.id === 'shakhtar');
+            myTeam.games++;
+            currentOpponent.games++;
+
+            if (homeGoals > awayGoals) {
+                myTeam.points += 3;
+            } else if (homeGoals === awayGoals) {
+                myTeam.points += 1;
+                currentOpponent.points += 1;
+            } else {
+                currentOpponent.points += 3;
+            }
+
+            // Рандомні результати для інших команд, щоб таблиця жила
+            teams.forEach(t => {
+                if(t.id !== 'shakhtar' && t.id !== currentOpponent.id) {
+                    t.games++;
+                    t.points += Math.floor(Math.random() * 4); // 0, 1, 2 або 3 очки
+                }
+            });
+
+            // Налаштовуємо кнопку на перехід до наступного туру
+            btn.onclick = () => {
+                currentOpponentIndex++;
+                prepareNextMatch();
+                btn.onclick = playMatch; // повертаємо функцію симуляції
             };
-            list.appendChild(item);
-        });
-    }
-
-    function showScreen(num) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById('screen-' + num).classList.add('active');
-        window.scrollTo(0, 0); 
-    }
-
-    function selectCoachMode(mode) {
-        if (mode === 'current') { gameState.coachName = gameState.club.coach; finishSetup(); }
-        else { showScreen(3); }
-    }
-
-    function finishSetup() {
-        const fN = document.getElementById('firstName').value;
-        const lN = document.getElementById('lastName').value;
-        if (gameState.coachName === "") {
-            if (!fN) { alert("Введіть ім'я!"); return; }
-            gameState.coachName = fN + " " + lN;
-        }
-        document.getElementById('final-name').innerText = gameState.coachName;
-        document.getElementById('final-budget').innerText = gameState.budget.toLocaleString() + " €";
-        showScreen(4);
-    }
-
-    function generateGameData() {
-        gameState.myPlayers = []; gameState.marketPlayers = []; gameState.leagueTable = []; gameState.matches = []; gameState.topPlayers = [];
-        for(let i=0; i<18; i++) gameState.myPlayers.push({ id: i, name: gName(), rating: rInt(60, 85), isStarter: i < 11 });
-        
-        for(let i=0; i<20; i++) {
-            let c = clubsData[rInt(0, clubsData.length-1)];
-            if(c.name === gameState.club.name) continue;
-            gameState.marketPlayers.push({ id: 100+i, name: gName(), rating: rInt(65, 88), team: c.name, price: rInt(500, 5000)*1000 });
         }
 
-        clubsData.forEach(c => {
-            let pts = rInt(10, 45);
-            let w = Math.floor(pts/3); let d = pts%3; let l = 15 - w - d;
-            if(l<0) { w=5; d=0; l=10; pts=15;}
-            let form = [];
-            for(let k=0; k<5; k++) form.push(['W','D','L'][rInt(0,2)]);
-            gameState.leagueTable.push({ name: c.name, p: 15, w: w, d: d, l: l, pts: pts, form: form });
-        });
-        gameState.leagueTable.sort((a,b) => b.pts - a.pts);
+        // Ініціалізація
+        renderTable();
+    </script>
+</body>
+            </html>
 
-        for(let i=0; i<10; i++) {
-            let t1 = clubsData[rInt(0,7)].name;
-            let t2 = clubsData[rInt(8,15)].name;
-            gameState.matches.push({ id: i, t1: t1, t2: t2, date: "Через " + rInt(1,7) + " днів" });
-        }
-
-        for(let i=0; i<15; i++) {
-            gameState.topPlayers.push({ name: gName(), team: clubsData[rInt(0,15)].name, goals: rInt(2,12), assists: rInt(1,8) });
-        }
-        gameState.topPlayers.sort((a,b) => b.goals - a.goals);
-    }
-
-    function startGame() {
-        generateGameData();
-        updateUI();
-        showScreen(5);
-        document.getElementById('bottom-nav').style.display = 'flex';
-        document.getElementById('top-title').innerText = gameState.club.name;
-    }
-
-    function switchTab(tabId, el) {
-        document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('a
